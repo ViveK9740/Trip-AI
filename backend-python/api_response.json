@@ -1,0 +1,177 @@
+{
+  "success": true,
+  "tripId": "temp-1764421955587",
+  "destination": "Indiranagar, Bangalore",
+  "duration": {
+    "days": 1,
+    "start_date": null,
+    "end_date": null
+  },
+  "budget": 15000.0,
+  "itinerary": [
+    {
+      "day": 1,
+      "date": null,
+      "activities": [
+        {
+          "time": "9:00 AM",
+          "type": "restaurant",
+          "name": "Mangoes",
+          "description": "Start your day with a delicious breakfast at Mangoes, known for its South Indian cuisine and pleasant ambiance.",
+          "location": {
+            "name": "Mangoes"
+          },
+          "estimatedCost": 1200,
+          "duration": "1 hour",
+          "tips": "Try their dosas or idlis. It can get crowded, so arrive early.",
+          "booking": {
+            "zomato": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Mangoes",
+            "swiggy": "https://www.swiggy.com/restaurants/Indiranagar%2C+Bangalore",
+            "primary": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Mangoes",
+            "type": "restaurant",
+            "label": "Reserve Table"
+          }
+        },
+        {
+          "time": "10:00 AM",
+          "type": "shopping",
+          "name": "Explore Indiranagar 100 Feet Road",
+          "description": "Walk along 100 Feet Road and explore the various boutiques, bookstores, and lifestyle stores. Indulge in some window shopping or purchase unique items.",
+          "location": {
+            "name": "Explore Indiranagar 100 Feet Road"
+          },
+          "estimatedCost": 1200,
+          "duration": "2 hours",
+          "tips": "Bargain at street stalls. Wear comfortable shoes for walking.",
+          "booking": {
+            "getyourguide": "https://www.getyourguide.com/s/?q=Explore+Indiranagar+100+Feet+Road+Indiranagar%2C+Bangalore",
+            "thrillophilia": "https://www.thrillophilia.com/search?q=Explore+Indiranagar+100+Feet+Road+Indiranagar%2C+Bangalore",
+            "tripadvisor": "https://www.tripadvisor.in/Search?q=Explore+Indiranagar+100+Feet+Road+Indiranagar%2C+Bangalore",
+            "primary": "https://www.getyourguide.com/s/?q=Explore+Indiranagar+100+Feet+Road+Indiranagar%2C+Bangalore",
+            "type": "general",
+            "label": "Explore Options"
+          }
+        },
+        {
+          "time": "12:00 PM",
+          "type": "restaurant",
+          "name": "Jook Taproom, Indiranagar",
+          "description": "Enjoy lunch at Jook Taproom, Indiranagar. They offer a variety of cuisines and a relaxed atmosphere.",
+          "location": {
+            "name": "Jook Taproom, Indiranagar"
+          },
+          "estimatedCost": 1200,
+          "duration": "1.5 hours",
+          "tips": "Try their craft beers and appetizers. Check for lunch specials.",
+          "booking": {
+            "zomato": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Jook+Taproom%2C+Indiranagar",
+            "swiggy": "https://www.swiggy.com/restaurants/Indiranagar%2C+Bangalore",
+            "primary": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Jook+Taproom%2C+Indiranagar",
+            "type": "restaurant",
+            "label": "Reserve Table"
+          }
+        },
+        {
+          "time": "1:30 PM",
+          "type": "activity",
+          "name": "Explore local cafes",
+          "description": "Indiranagar is known for its unique cafes. Spend some time exploring and relaxing at one of the many cafes in the area.",
+          "location": {
+            "name": "Explore local cafes"
+          },
+          "estimatedCost": 1800,
+          "duration": "2 hours",
+          "tips": "Try a local coffee shop for a unique experience.",
+          "booking": {
+            "getyourguide": "https://www.getyourguide.com/s/?q=Explore+local+cafes+Indiranagar%2C+Bangalore",
+            "thrillophilia": "https://www.thrillophilia.com/search?q=Explore+local+cafes+Indiranagar%2C+Bangalore",
+            "tripadvisor": "https://www.tripadvisor.in/Search?q=Explore+local+cafes+Indiranagar%2C+Bangalore",
+            "primary": "https://www.getyourguide.com/s/?q=Explore+local+cafes+Indiranagar%2C+Bangalore",
+            "type": "activity",
+            "label": "Book Activity"
+          }
+        },
+        {
+          "time": "3:30 PM",
+          "type": "restaurant",
+          "name": "Syed Kabab Centre",
+          "description": "Enjoy some delicious kebabs at Syed Kabab Centre, known for its flavorful and affordable options.",
+          "location": {
+            "name": "Syed Kabab Centre"
+          },
+          "estimatedCost": 1200,
+          "duration": "1 hour",
+          "tips": "Try their signature kebabs. Be prepared for a casual dining experience.",
+          "booking": {
+            "zomato": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Syed+Kabab+Centre",
+            "swiggy": "https://www.swiggy.com/restaurants/Indiranagar%2C+Bangalore",
+            "primary": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Syed+Kabab+Centre",
+            "type": "restaurant",
+            "label": "Reserve Table"
+          }
+        },
+        {
+          "time": "4:30 PM",
+          "type": "leisure",
+          "name": "Relax at a Spa",
+          "description": "Indulge in a relaxing spa treatment at one of Indiranagar's many spas to unwind after a day of exploring.",
+          "location": {
+            "name": "Relax at a Spa"
+          },
+          "estimatedCost": 1200,
+          "duration": "2 hours",
+          "tips": "Book in advance to ensure availability. Check for special offers.",
+          "booking": {
+            "getyourguide": "https://www.getyourguide.com/s/?q=Relax+at+a+Spa+Indiranagar%2C+Bangalore",
+            "thrillophilia": "https://www.thrillophilia.com/search?q=Relax+at+a+Spa+Indiranagar%2C+Bangalore",
+            "tripadvisor": "https://www.tripadvisor.in/Search?q=Relax+at+a+Spa+Indiranagar%2C+Bangalore",
+            "primary": "https://www.getyourguide.com/s/?q=Relax+at+a+Spa+Indiranagar%2C+Bangalore",
+            "type": "general",
+            "label": "Explore Options"
+          }
+        },
+        {
+          "time": "6:30 PM",
+          "type": "restaurant",
+          "name": "Kibeey's",
+          "description": "Have dinner at Kibeey's, known for its delicious food and great ambiance.",
+          "location": {
+            "name": "Kibeey's"
+          },
+          "estimatedCost": 1200,
+          "duration": "2 hours",
+          "tips": "Try their signature dishes. Make a reservation, especially on weekends.",
+          "booking": {
+            "zomato": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Kibeey%27s",
+            "swiggy": "https://www.swiggy.com/restaurants/Indiranagar%2C+Bangalore",
+            "primary": "https://www.zomato.com/Indiranagar%2C+Bangalore/restaurants?q=Kibeey%27s",
+            "type": "restaurant",
+            "label": "Reserve Table"
+          }
+        }
+      ],
+      "totalCost": 9000,
+      "summary": "Day 1 exploring Indiranagar, Bangalore"
+    }
+  ],
+  "budgetValidation": {
+    "withinBudget": true,
+    "budget": 15000.0,
+    "estimated": 4500,
+    "breakdown": {
+      "accommodation": 0,
+      "transportation": 3000,
+      "activities": 0,
+      "food": 0,
+      "miscellaneous": 1500,
+      "total": 4500
+    },
+    "adjustments": [],
+    "savingsOpportunities": [
+      "Look for combo tickets or city passes for multiple attractions",
+      "Travel during off-peak hours for better transportation rates"
+    ]
+  },
+  "processingTime": 10935.983419418335,
+  "message": "\u2705 Your perfect trip is ready!"
+}

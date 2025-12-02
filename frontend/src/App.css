@@ -1,0 +1,17 @@
+.app {
+    min-height: 100vh;
+}
+
+.app-header {
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    z-index: 999;
+}
+
+@media (max-width: 768px) {
+    .app-header {
+        top: 1rem;
+        left: 1rem;
+    }
+}

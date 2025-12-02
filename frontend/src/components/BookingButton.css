@@ -1,0 +1,82 @@
+.booking-button-container {
+    margin-top: 0.75rem;
+}
+
+.booking-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.booking-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.booking-button:hover::before {
+    opacity: 1;
+}
+
+.booking-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.booking-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.booking-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.booking-label {
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .booking-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .booking-icon {
+        font-size: 1rem;
+    }
+
+    .booking-label {
+        font-size: 0.85rem;
+    }
+}
+
+/* Accessibility */
+.booking-button:focus {
+    outline: 2px solid hsl(200, 90%, 55%);
+    outline-offset: 2px;
+}
+
+.booking-button:focus:not(:focus-visible) {
+    outline: none;
+}
