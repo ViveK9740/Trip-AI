@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Login from './Login';
 import Signup from './Signup';
@@ -9,6 +9,8 @@ const UserMenu = () => {
     const [showLogin, setShowLogin] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const buttonRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     console.log('UserMenu Render:', { isAuthenticated, user, showLogin, showSignup });
 
@@ -62,9 +64,26 @@ const UserMenu = () => {
         );
     }
 
+    // Calculate dropdown position
+    const getDropdownPosition = () => {
+        if (!buttonRef.current) return {};
+        
+        const buttonRect = buttonRef.current.getBoundingClientRect();
+        // Calculate right position, ensuring dropdown doesn't go off-screen on the left
+        const rightOffset = Math.max(16, window.innerWidth - buttonRect.right - 100);
+        
+        return {
+            position: 'fixed',
+            top: `${buttonRect.bottom + 8}px`,
+            right: `${rightOffset}px`,
+            left: 'auto'
+        };
+    };
+
     return (
         <div className="user-menu">
             <button
+                ref={buttonRef}
                 className="user-menu-button"
                 onClick={() => setShowDropdown(!showDropdown)}
             >
@@ -77,7 +96,11 @@ const UserMenu = () => {
             {showDropdown && (
                 <>
                     <div className="dropdown-overlay" onClick={() => setShowDropdown(false)} />
-                    <div className="user-dropdown">
+                    <div 
+                        ref={dropdownRef} 
+                        className="user-dropdown"
+                        style={getDropdownPosition()}
+                    >
                         <div className="dropdown-header">
                             <div className="user-info">
                                 <p className="user-info-name">{user?.name}</p>

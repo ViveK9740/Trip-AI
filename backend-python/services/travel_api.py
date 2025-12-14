@@ -253,24 +253,33 @@ class TravelAPIService:
         # Mappls returns different structures depending on the endpoint
         results = data.get("suggestedLocations", []) or data.get("results", [])
         
+        print(f"🔍 Mappls returned {len(results)} total results for {destination}")
+        
         # Increase limit for attractions, keep lower for restaurants
         max_results = 10 if is_restaurant else 25
         
-        for place in results[:max_results]:
+        # Split destination into keywords for better matching
+        dest_keywords = [word.lower() for word in destination.split() if len(word) > 2]
+        
+        for idx, place in enumerate(results[:max_results]):
             # Get place details
             address = place.get("placeAddress") or place.get("address", "")
             name = place.get("placeName") or place.get("name", "")
             place_type = place.get("type", "")
             
-            # More lenient filtering - accept if destination appears anywhere in the context
-            # OR if it's a well-known landmark (identified by high confidence score)
-            destination_match = (destination.lower() in address.lower() or 
-                               destination.lower() in name.lower() or
-                               destination.split()[0].lower() in address.lower())
+            # Very lenient filtering - accept if ANY destination keyword appears ANYWHERE
+            # in the address or name, OR if it's from the search results (trust the API)
+            destination_match = any(
+                keyword in address.lower() or keyword in name.lower() 
+                for keyword in dest_keywords
+            )
             
-            if not destination_match:
-                continue
-
+            # Debug logging for first few results
+            if idx < 3:
+                print(f"  Result {idx+1}: '{name}' at '{address}' - Match: {destination_match}")
+            
+            # Accept all results from Mappls API since we searched for this destination
+            # The API already filtered by destination, so we trust its results
             places.append({
                 "name": name,
                 "address": address,
@@ -285,6 +294,7 @@ class TravelAPIService:
                 "price_level": 2 if is_restaurant else None
             })
         
+        print(f"✅ Parsed {len(places)} places from Mappls API")
         return places
     
     def _get_mock_places(self, destination: str) -> List[Dict[str, Any]]:

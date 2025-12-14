@@ -7,18 +7,45 @@ class BudgetAgent:
     Validates itineraries against budget constraints and provides recommendations
     """
     
-    # Accommodation pricing per night (base rates)
+    # Accommodation pricing per night (base rates - realistic Indian prices)
     ACCOMMODATION_RATES = {
-        "budget": {"min": 800, "max": 1500},
-        "mid_range": {"min": 2500, "max": 5000},
-        "luxury": {"min": 8000, "max": 15000}
+        "budget": {"min": 600, "max": 1200},      # Budget hotels, hostels
+        "mid_range": {"min": 1500, "max": 3500}, # 3-4 star hotels
+        "luxury": {"min": 5000, "max": 12000}    # 5-star hotels, resorts
     }
     
-    # Meal costs per person
+    # Meal costs per person (realistic Indian dining costs)
     MEAL_COSTS = {
-        "budget": {"breakfast": 100, "lunch": 200, "dinner": 250},
-        "mid_range": {"breakfast": 200, "lunch": 400, "dinner": 500},
-        "luxury": {"breakfast": 400, "lunch": 800, "dinner": 1000}
+        "budget": {"breakfast": 80, "lunch": 150, "dinner": 200},      # Street food, local eateries
+        "mid_range": {"breakfast": 150, "lunch": 300, "dinner": 400}, # Standard restaurants
+        "luxury": {"breakfast": 300, "lunch": 600, "dinner": 800}     # Fine dining
+    }
+    
+    # Transportation base costs (₹ per km or fixed rates)
+    TRANSPORT_COSTS = {
+        "public_transport": {"per_km": 1.5, "city_daily": 150},  # Bus/metro
+        "own_vehicle": {"fuel_per_km": 6, "toll_daily": 100},    # Petrol car
+        "rental": {"per_day": 2000, "fuel_per_km": 6},           # Rental car with fuel
+        "flexible": {"per_km": 12, "city_daily": 300}            # Mix of auto/taxi/bus
+    }
+    
+    # Activity/Attraction entry fees (average per person)
+    ACTIVITY_COSTS = {
+        "monument": 50,      # Historical monuments (ASI sites)
+        "fort": 100,         # Forts and palaces
+        "museum": 50,        # Museums
+        "temple": 0,         # Temples (usually free)
+        "beach": 0,          # Beaches (free)
+        "waterfall": 20,     # Waterfalls (nominal entry)
+        "viewpoint": 0,      # Viewpoints (usually free)
+        "park": 30,          # Parks and gardens
+        "adventure": 800,    # Adventure activities (parasailing, rafting, etc.)
+        "water_sports": 500, # Water sports
+        "amusement_park": 600, # Theme/amusement parks
+        "zoo": 80,           # Zoos and aquariums
+        "wildlife": 1500,    # Wildlife sanctuary (with safari)
+        "boat_ride": 200,    # Boat rides
+        "shopping": 500      # Shopping budget per visit
     }
     
     async def process(
@@ -71,50 +98,123 @@ class BudgetAgent:
         """Calculate detailed budget breakdown with realistic pricing"""
         days = trip_details["duration"]["days"]
         nights = days - 1 if days > 1 else 0
-        travelers = trip_details.get("travelers", {}).get("adults", 1) + trip_details.get("travelers", {}).get("children", 0)
-        accommodation_type = trip_details.get("accommodation_type", "mid_range")
+        adults = trip_details.get("travelers", {}).get("adults", 1)
+        children = trip_details.get("travelers", {}).get("children", 0)
+        travelers = adults + children
         
-        # Accommodation costs (realistic per-night pricing)
+        # Get preferences
+        preferences = trip_details.get("preferences", {})
+        accommodation_type = preferences.get("accommodation_type", "mid_range")
+        transport_mode = preferences.get("transport_mode", "flexible")
+        origin = trip_details.get("origin")
+        destination = trip_details.get("destination", "")
+        
+        # 1. ACCOMMODATION COSTS
         if nights > 0:
             rate_range = self.ACCOMMODATION_RATES.get(accommodation_type, self.ACCOMMODATION_RATES["mid_range"])
             avg_rate = (rate_range["min"] + rate_range["max"]) / 2
-            # Single room for 1-2 people, additional rooms for more
+            # Rooms: 1 room for 1-2 people, 2 rooms for 3-4 people, etc.
             rooms_needed = max(1, (travelers + 1) // 2)
             accommodation_per_night = avg_rate * rooms_needed
             accommodation = round(accommodation_per_night * nights)
         else:
             accommodation = 0
         
-        # Food costs (realistic meal pricing per person)
+        # 2. FOOD COSTS (count actual meals from itinerary)
         meal_rates = self.MEAL_COSTS.get(accommodation_type, self.MEAL_COSTS["mid_range"])
-        meals_per_day = 3  # breakfast, lunch, dinner
-        daily_food_cost = sum(meal_rates.values()) * travelers
-        food = round(daily_food_cost * days)
         
-        # Activities and attractions (sum from itinerary)
-        activities_cost = 0
-        attractions_cost = 0
+        # Count meals from itinerary
+        breakfast_count = lunch_count = dinner_count = 0
         for day in itinerary:
             for activity in day.get("activities", []):
-                cost = activity.get("estimated_cost", 0)
-                if activity.get("type") in ["sightseeing", "activity"]:
-                    attractions_cost += cost
-                elif activity.get("type") != "food":
-                    activities_cost += cost
+                if activity.get("type") == "food":
+                    desc = activity.get("description", "").lower()
+                    if "breakfast" in desc:
+                        breakfast_count += 1
+                    elif "lunch" in desc:
+                        lunch_count += 1
+                    elif "dinner" in desc:
+                        dinner_count += 1
         
-        # Transportation (based on distance and mode)
-        transport_mode = trip_details.get("transport_mode", "public")
-        transport_multipliers = {
-            "public": 0.15,  # 15% of budget
-            "rental": 0.25,  # 25% of budget
-            "own_vehicle": 0.12,  # 12% of budget (fuel only)
-            "flight": 0.30  # 30% of budget
-        }
-        budget = trip_details["budget"]
-        transportation = round(budget * transport_multipliers.get(transport_mode, 0.15))
+        # Calculate food cost based on actual meals
+        food = round((
+            breakfast_count * meal_rates["breakfast"] +
+            lunch_count * meal_rates["lunch"] +
+            dinner_count * meal_rates["dinner"]
+        ) * travelers)
         
-        # Miscellaneous (shopping, tips, emergencies)
-        miscellaneous = round(budget * 0.08)
+        # If no meals counted, use default (3 per day)
+        if breakfast_count + lunch_count + dinner_count == 0:
+            daily_food = sum(meal_rates.values()) * travelers
+            food = round(daily_food * days)
+        
+        # 3. ATTRACTIONS & ACTIVITIES COSTS (estimate based on activity types)
+        attractions_cost = 0
+        activities_cost = 0
+        
+        for day in itinerary:
+            for activity in day.get("activities", []):
+                act_type = activity.get("type", "")
+                name = activity.get("name", "").lower()
+                
+                if act_type == "sightseeing":
+                    # Estimate based on place type
+                    cost_per_person = 0
+                    if any(word in name for word in ["fort", "palace"]):
+                        cost_per_person = self.ACTIVITY_COSTS["fort"]
+                    elif any(word in name for word in ["monument", "memorial"]):
+                        cost_per_person = self.ACTIVITY_COSTS["monument"]
+                    elif "museum" in name or "gallery" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["museum"]
+                    elif any(word in name for word in ["temple", "church", "mosque"]):
+                        cost_per_person = self.ACTIVITY_COSTS["temple"]
+                    elif any(word in name for word in ["beach", "coast"]):
+                        cost_per_person = self.ACTIVITY_COSTS["beach"]
+                    elif "waterfall" in name or "falls" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["waterfall"]
+                    elif "viewpoint" in name or "view point" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["viewpoint"]
+                    elif any(word in name for word in ["park", "garden"]):
+                        cost_per_person = self.ACTIVITY_COSTS["park"]
+                    elif any(word in name for word in ["zoo", "aquarium"]):
+                        cost_per_person = self.ACTIVITY_COSTS["zoo"]
+                    elif "wildlife" in name or "sanctuary" in name or "safari" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["wildlife"]
+                    else:
+                        cost_per_person = 50  # Default sightseeing
+                    
+                    attractions_cost += cost_per_person * travelers
+                
+                elif act_type == "activity":
+                    # Adventure/special activities
+                    cost_per_person = 0
+                    if any(word in name for word in ["water sport", "jet ski", "parasailing", "banana boat"]):
+                        cost_per_person = self.ACTIVITY_COSTS["water_sports"]
+                    elif any(word in name for word in ["adventure", "rafting", "trekking", "paragliding"]):
+                        cost_per_person = self.ACTIVITY_COSTS["adventure"]
+                    elif "amusement" in name or "theme park" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["amusement_park"]
+                    elif "boat" in name or "cruise" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["boat_ride"]
+                    elif "shop" in name or "market" in name:
+                        cost_per_person = self.ACTIVITY_COSTS["shopping"]
+                    else:
+                        cost_per_person = 300  # Default activity
+                    
+                    activities_cost += cost_per_person * travelers
+        
+        attractions_cost = round(attractions_cost)
+        activities_cost = round(activities_cost)
+        
+        # 4. TRANSPORTATION COSTS (realistic calculation)
+        transportation = self._calculate_transport_cost(
+            origin, destination, days, travelers, transport_mode
+        )
+        
+        # 5. MISCELLANEOUS (tips, shopping, emergencies)
+        # 5-10% of (accommodation + food + activities)
+        base_cost = accommodation + food + attractions_cost + activities_cost
+        miscellaneous = round(base_cost * 0.08)
         
         total = accommodation + food + activities_cost + attractions_cost + transportation + miscellaneous
         
@@ -129,6 +229,98 @@ class BudgetAgent:
             "accommodationPerNight": round(accommodation / nights) if nights > 0 else 0,
             "foodPerDay": round(food / days) if days > 0 else 0
         }
+    
+    def _calculate_transport_cost(
+        self,
+        origin: str,
+        destination: str,
+        days: int,
+        travelers: int,
+        transport_mode: str
+    ) -> float:
+        """Calculate realistic transportation costs"""
+        
+        # Estimate distance between cities (km)
+        distance = self._estimate_distance(origin, destination)
+        
+        transport_info = self.TRANSPORT_COSTS.get(transport_mode, self.TRANSPORT_COSTS["flexible"])
+        
+        if transport_mode == "public_transport":
+            # Intercity travel (bus/train) + daily city transport
+            if distance > 0:
+                intercity_cost = distance * 0.5 * travelers  # ₹0.5 per km per person (bus/train)
+                intercity_cost *= 2  # Round trip
+            else:
+                intercity_cost = 0
+            city_transport = transport_info["city_daily"] * days * travelers
+            return round(intercity_cost + city_transport)
+        
+        elif transport_mode == "own_vehicle":
+            # Fuel + tolls
+            if distance > 0:
+                fuel_cost = distance * transport_info["fuel_per_km"] * 2  # Round trip
+                toll_cost = transport_info["toll_daily"] * ((distance // 200) + 1) * 2  # Tolls
+            else:
+                fuel_cost = 0
+                toll_cost = 0
+            city_fuel = 30 * transport_info["fuel_per_km"] * days  # 30km daily city driving
+            return round(fuel_cost + toll_cost + city_fuel)
+        
+        elif transport_mode == "rental":
+            # Rental fee + fuel
+            rental_fee = transport_info["per_day"] * days
+            if distance > 0:
+                fuel = (distance * 2 + 30 * days) * transport_info["fuel_per_km"]
+            else:
+                fuel = 30 * days * transport_info["fuel_per_km"]
+            return round(rental_fee + fuel)
+        
+        else:  # flexible (mix of transport)
+            # Taxi/auto for city + intercity
+            if distance > 0:
+                intercity = distance * 8 * 2  # ₹8 per km (shared taxi)
+            else:
+                intercity = 0
+            city_travel = transport_info["city_daily"] * days
+            return round(intercity + city_travel)
+    
+    def _estimate_distance(self, origin: str, destination: str) -> int:
+        """Estimate distance between cities (very rough estimates)"""
+        if not origin or not destination:
+            return 0
+        
+        # Common city pairs (km)
+        city_distances = {
+            ("bangalore", "hyderabad"): 570,
+            ("bangalore", "goa"): 560,
+            ("bangalore", "mysore"): 150,
+            ("mumbai", "goa"): 580,
+            ("mumbai", "pune"): 150,
+            ("delhi", "jaipur"): 280,
+            ("delhi", "agra"): 230,
+            ("chennai", "pondicherry"): 160,
+            ("chennai", "bangalore"): 350,
+            ("kolkata", "darjeeling"): 600,
+        }
+        
+        # Normalize city names
+        origin_norm = origin.lower().split()[0] if origin else ""
+        dest_norm = destination.lower().split()[0] if destination else ""
+        
+        # Check direct match
+        for (city1, city2), dist in city_distances.items():
+            if (origin_norm in city1 or city1 in origin_norm) and \
+               (dest_norm in city2 or city2 in dest_norm):
+                return dist
+            if (origin_norm in city2 or city2 in origin_norm) and \
+               (dest_norm in city1 or city1 in dest_norm):
+                return dist
+        
+        # If no match, assume moderate distance (local trip)
+        if origin_norm and dest_norm and origin_norm != dest_norm:
+            return 300  # Default 300km for unknown routes
+        
+        return 0  # Same city or no origin
     
     def _calculate_per_person_cost(
         self,

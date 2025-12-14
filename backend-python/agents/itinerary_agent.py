@@ -17,24 +17,24 @@ class ItineraryAgent:
         print("📅 Itinerary Agent: Creating itinerary...")
         
         try:
-            # Fetch places data from travel API - PRIORITIZE TOURIST ATTRACTIONS
-            # Search for comprehensive attraction categories
-            place_categories = [
-                "tourist attraction", "monument", "temple", "fort", "palace",
-                "historical place", "museum", "park", "beach", "lake",
-                "waterfall", "viewpoint", "garden", "zoo", "aquarium",
-                "heritage site", "landmark", "religious place", "adventure activity"
-            ]
+            # Get travel style preference
+            travel_style = trip_details.get("preferences", {}).get("travel_style", "balanced")
+            print(f"🎨 Travel Style Detected: {travel_style}")
+            
+            # Fetch places data from travel API - ADJUST CATEGORIES BASED ON TRAVEL STYLE
+            place_categories = self._get_categories_for_style(travel_style)
+            
             places = []
-            for category in place_categories:
+            for category, limit in place_categories.items():
                 category_places = await travel_api.search_places(trip_details["destination"], category)
-                places.extend(category_places)
+                # Take limited results per category based on priority
+                places.extend(category_places[:limit])
             
             # Remove duplicates based on name
             unique_places = {p["name"]: p for p in places}.values()
-            places = list(unique_places)[:40]  # Increased to 40 for more variety
+            places = list(unique_places)[:30]  # Increased to 30 for more variety
             
-            print(f"📍 Tourist Attractions fetched: {len(places)} items (from {len(place_categories)} categories)")
+            print(f"📍 Diverse Attractions fetched: {len(places)} items (from {len(place_categories)} categories)")
             
             # Fetch fewer restaurants (only for meal planning)
             restaurants = await travel_api.search_restaurants(
@@ -86,11 +86,18 @@ class ItineraryAgent:
             
         except Exception as e:
             import traceback
-            print(f"❌ Itinerary Agent Error: {str(e)}")
+            error_msg = f"❌ ITINERARY AGENT CRASHED: {str(e)}"
+            print("\n" + "="*50)
+            print(error_msg)
+            print("="*50)
             print(f"Full traceback:")
             traceback.print_exc()
+            print("="*50 + "\n")
+            
             log_data("ITINERARY AGENT EXCEPTION", {"error": str(e), "traceback": traceback.format_exc()})
+            
             # Fallback to template-based itinerary
+            print("⚠️ FALLING BACK TO TEMPLATE DATA DUE TO ERROR")
             return self._create_template_itinerary(trip_details)
     
     def _structure_itinerary(
@@ -299,6 +306,74 @@ class ItineraryAgent:
             })
         
         return itinerary
+    
+    def _get_categories_for_style(self, travel_style: str) -> Dict[str, int]:
+        """Return place categories optimized for specific travel style"""
+        
+        if travel_style == "cultural":
+            # CULTURAL STYLE: Focus on heritage, temples, museums, monuments
+            return {
+                # Historical & Cultural (HIGHEST PRIORITY)
+                "temple": 10, "fort": 10, "palace": 10, "monument": 10, 
+                "heritage site": 10, "museum": 8, "historical site": 8,
+                "ancient temple": 8, "archaeological site": 8,
+                # Some natural with cultural significance
+                "sacred lake": 5, "holy river": 5,
+                # Local cultural experiences
+                "art gallery": 6, "cultural center": 6, "traditional market": 5,
+                # Minimal modern attractions
+                "viewpoint": 2, "park": 2
+            }
+        
+        elif travel_style == "adventure":
+            # ADVENTURE STYLE: Focus on thrilling activities, nature, sports
+            return {
+                # Adventure & Activities (HIGHEST PRIORITY)
+                "adventure activity": 10, "water sports": 10, "trekking": 10,
+                "wildlife sanctuary": 10, "national park": 10,
+                # Natural attractions good for adventure
+                "waterfall": 8, "hill station": 8, "viewpoint": 8, 
+                "mountain": 8, "river": 8, "lake": 6,
+                # Modern activities
+                "amusement park": 7, "zoo": 6, "aquarium": 6,
+                "cruise": 6, "paragliding": 8, "rafting": 8,
+                # Minimal cultural/religious
+                "fort": 3, "temple": 2
+            }
+        
+        elif travel_style == "relaxed":
+            # RELAXED STYLE: Focus on beaches, spas, peaceful spots, cafes
+            return {
+                # Peaceful & Relaxing (HIGHEST PRIORITY)
+                "beach": 10, "lake": 10, "spa": 10, "resort": 8,
+                "sunset point": 10, "garden": 8, "park": 8,
+                "botanical garden": 8, "peaceful temple": 6,
+                # Leisure activities
+                "cafe": 8, "restaurant": 6, "viewpoint": 8,
+                "shopping": 5, "market": 4,
+                # Some light activities
+                "boat ride": 7, "cruise": 7,
+                # Minimal strenuous activities
+                "monument": 3, "museum": 3, "fort": 2
+            }
+        
+        else:  # balanced (default)
+            # BALANCED STYLE: Good mix of everything
+            return {
+                # Natural attractions (HIGH PRIORITY)
+                "beach": 8, "waterfall": 8, "lake": 6, "viewpoint": 8, "hill station": 6,
+                # Historical & Cultural (MEDIUM PRIORITY)
+                "fort": 5, "palace": 5, "monument": 4, "heritage site": 5, "museum": 4,
+                # Religious (LOW PRIORITY)
+                "temple": 3, "church": 2,
+                # Entertainment & Activities (HIGH PRIORITY)
+                "adventure activity": 7, "amusement park": 6, "zoo": 5, "aquarium": 5,
+                "botanical garden": 5, "wildlife sanctuary": 6, "national park": 6,
+                # Local experiences (MEDIUM PRIORITY)
+                "market": 4, "shopping": 4, "cafe": 3, "local attraction": 6,
+                # Modern attractions
+                "casino": 4, "cruise": 5, "water sports": 6, "night club": 3
+            }
 
 
 # Singleton instance

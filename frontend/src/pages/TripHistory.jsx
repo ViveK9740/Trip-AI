@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './TripHistory.css';
@@ -6,6 +7,7 @@ import './TripHistory.css';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const TripHistory = () => {
+    const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,11 +21,17 @@ const TripHistory = () => {
 
     const fetchTrips = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/trips`);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_BASE_URL}/api/trips`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             setTrips(response.data);
+            setError(''); // Clear any previous errors
         } catch (err) {
             setError('Failed to load trips');
-            console.error(err);
+            console.error('Fetch trips error:', err);
         } finally {
             setLoading(false);
         }
@@ -33,11 +41,16 @@ const TripHistory = () => {
         if (!confirm('Are you sure you want to delete this trip?')) return;
 
         try {
-            await axios.delete(`${API_BASE_URL}/api/trips/${tripId}`);
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_BASE_URL}/api/trips/${tripId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             setTrips(trips.filter(trip => trip.id !== tripId));
         } catch (err) {
             alert('Failed to delete trip');
-            console.error(err);
+            console.error('Delete trip error:', err);
         }
     };
 
@@ -117,9 +130,14 @@ const TripHistory = () => {
                                     Saved {new Date(trip.created_at).toLocaleDateString()}
                                 </p>
 
-                                <a href={`/trip/${trip.id}`} className="btn btn-secondary trip-view-btn">
-                                    View Itinerary
-                                </a>
+                                <div className="trip-card-actions">
+                                    <button 
+                                        className="btn btn-secondary trip-view-btn"
+                                        onClick={() => navigate(`/trip/${trip.id}`)}
+                                    >
+                                        📋 View Details
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

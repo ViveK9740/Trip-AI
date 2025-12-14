@@ -105,6 +105,7 @@ const Home = () => {
                             itinerary={planData.itinerary}
                             budgetValidation={planData.budgetValidation}
                             destination={planData.destination}
+                            tripDetails={planData}
                         />
                     </div>
                 </section>

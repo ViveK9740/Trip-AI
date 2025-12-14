@@ -2,8 +2,9 @@ import React from 'react';
 import './ItineraryDisplay.css';
 import ReviewDisplay from './ReviewDisplay';
 import BookingButton from './BookingButton';
+import SaveTripButton from './SaveTripButton';
 
-const ItineraryDisplay = ({ itinerary, budgetValidation, destination }) => {
+const ItineraryDisplay = ({ itinerary, budgetValidation, destination, tripDetails }) => {
     if (!itinerary || itinerary.length === 0) {
         return null;
     }
@@ -37,10 +38,21 @@ const ItineraryDisplay = ({ itinerary, budgetValidation, destination }) => {
     return (
         <div className="itinerary-display">
             <div className="itinerary-header">
-                <h2 className="gradient-text">📅 Your Perfect Itinerary for {destination}</h2>
-                <p className="text-secondary">
-                    {itinerary.length}-day adventure planned just for you
-                </p>
+                <div>
+                    <h2 className="gradient-text">📅 Your Perfect Itinerary for {destination}</h2>
+                    <p className="text-secondary">
+                        {itinerary.length}-day adventure planned just for you
+                    </p>
+                </div>
+                <SaveTripButton 
+                    itinerary={itinerary} 
+                    tripDetails={{
+                        destination: destination,
+                        days: itinerary.length,
+                        budget: budgetValidation?.budget,
+                        ...tripDetails
+                    }} 
+                />
             </div>
 
             {/* Budget Overview */}

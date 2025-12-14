@@ -27,18 +27,33 @@ async def save_trip(
     """Save a new trip for the authenticated user"""
     trips = get_trips_collection()
     
-    trip_doc = TripModel(
-        user_id=str(user["_id"]),
-        destination=request.destination,
-        start_date=request.start_date,
-        end_date=request.end_date,
-        days=request.days,
-        budget=request.budget,
-        itinerary_data=request.itinerary_data
-    )
+    # Create trip document without _id field - let MongoDB auto-generate it
+    trip_dict = {
+        "user_id": str(user["_id"]),
+        "destination": request.destination,
+        "start_date": request.start_date,
+        "end_date": request.end_date,
+        "days": request.days,
+        "budget": request.budget,
+        "itinerary_data": request.itinerary_data,
+        "created_at": datetime.utcnow()
+    }
     
-    result = trips.insert_one(trip_doc.dict(by_alias=True))
+    result = trips.insert_one(trip_dict)
     trip_id = str(result.inserted_id)
+    
+    # Create TripModel for response
+    trip_doc = TripModel(
+        id=trip_id,
+        user_id=trip_dict["user_id"],
+        destination=trip_dict["destination"],
+        start_date=trip_dict["start_date"],
+        end_date=trip_dict["end_date"],
+        days=trip_dict["days"],
+        budget=trip_dict["budget"],
+        itinerary_data=trip_dict["itinerary_data"],
+        created_at=trip_dict["created_at"]
+    )
     
     return TripDetailResponse(
         id=trip_id,

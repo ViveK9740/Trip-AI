@@ -14,15 +14,25 @@ const Dashboard = () => {
 
     const fetchUserData = async () => {
         try {
-            const [prefsRes, tripsRes] = await Promise.all([
-                axios.get('/api/user/preferences?userId=demo-user-123'),
-                axios.get('/api/user/trips?userId=demo-user-123')
-            ]);
+            const token = localStorage.getItem('token');
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            
+            // Fetch trips with authentication
+            const tripsRes = await axios.get(`${API_BASE_URL}/api/trips`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-            setPreferences(prefsRes.data.preferences);
-            setTrips(tripsRes.data.trips);
+            // Set default preferences for now (or remove this section if not needed)
+            setPreferences({
+                budget: 'mid_range',
+                travelStyle: 'balanced'
+            });
+            setTrips(tripsRes.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
+            setTrips([]);
         } finally {
             setLoading(false);
         }

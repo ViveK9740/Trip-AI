@@ -22,10 +22,16 @@ class NLPAgent:
             # Use LLM to parse the query
             parsed = await llm_service.parse_user_query(user_query, user_preferences or {})
             
-            # Validate and enrich the parsed data - PRIORITIZE FORM DATA
-            # Form preferences take precedence over query parsing
+            # Debug: Log what was parsed
+            print(f"🔍 LLM Parsed Data:")
+            print(f"   📍 Parsed Destination: {parsed.get('destination')}")
+            print(f"   📝 Form Destination: {user_preferences.get('destination') if user_preferences else 'None'}")
+            
+            # Validate and enrich the parsed data
+            # IMPORTANT: Use parsed destination from query if form destination is not explicitly provided
+            # This allows query to override empty/missing form fields
             enriched = {
-                "destination": user_preferences.get("destination") or parsed.get("destination"),
+                "destination": parsed.get("destination") or user_preferences.get("destination"),
                 "origin": user_preferences.get("origin"),
                 "is_round_trip": user_preferences.get("isRoundTrip", False),  # Match frontend field name
                 "duration": {
@@ -46,7 +52,10 @@ class NLPAgent:
                     "night_travel": user_preferences.get("preferences", {}).get("night_travel", False),
                     "accommodation_type": user_preferences.get("preferences", {}).get("accommodation_type", "mid_range"),
                     "travel_style": user_preferences.get("preferences", {}).get("travel_style", "balanced")
-                }
+                },
+                "event_details": parsed.get("event_details", {
+                    "has_event": False
+                })
             }
             
             # Log the preferences being used
@@ -54,6 +63,10 @@ class NLPAgent:
             print(f"   🏠 Origin: {enriched['origin']}")
             print(f"   🎯 Destination: {enriched['destination']}")
             print(f"   🔄 Round Trip: {enriched['is_round_trip']}")
+            if enriched.get("event_details", {}).get("has_event"):
+                print(f"   🎪 EVENT DETECTED: {enriched['event_details'].get('event_type', 'Unknown')} - {enriched['event_details'].get('event_name', 'N/A')}")
+                print(f"   📍 Event Location: {enriched['event_details'].get('event_location', 'N/A')}")
+                print(f"   📅 Event Schedule: {enriched['event_details'].get('event_schedule', 'N/A')}")
             print(f"   ⏱️  Duration: {enriched['duration']['days']} days")
             print(f"   💰 Budget: ₹{enriched['budget']}")
             print(f"   👥 Travelers: {enriched['travelers']['adults']} adults, {enriched['travelers']['children']} children")

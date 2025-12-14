@@ -19,7 +19,8 @@ class LLMService:
             print("⚠️ GEMINI_API_KEY not found in environment variables")
         
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        # Use gemini-2.5-flash (confirmed available model)
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
     
     async def generate_completion(
         self, 
@@ -94,11 +95,25 @@ class LLMService:
             {
                 "role": "system",
                 "content": """You are a travel query parser. Extract structured information from user's travel request.
+
+CRITICAL: Identify the PRIMARY DESTINATION carefully:
+- If query mentions "from X to Y", the destination is Y (where user is GOING)
+- If query mentions event/purpose at a location, that location is the destination
+- Don't confuse origin (starting point) with destination (where they're going)
+
 Return JSON with: 
-- destination
+- destination (string: MAIN place they want to visit/reach)
+- origin (string: where they are starting from, if mentioned)
 - duration (object with days, startDate, endDate)
 - budget (number)
 - travelers (object with adults, children)
+- event_details (object: if this is for a specific event like hackathon, conference, wedding, etc.)
+  * has_event (boolean: true if trip is for a specific event)
+  * event_type (string: hackathon, conference, wedding, meeting, etc.)
+  * event_name (string: name of the event)
+  * event_location (string: specific venue/address of the event)
+  * event_schedule (object with startDateTime, endDateTime in ISO format)
+  * return_constraints (string: any time constraints for return journey)
 - preferences (object with:
     - dietary (array: veg, non-veg, vegan)
     - transport_mode (public_transport, own_vehicle, rental, flexible)
@@ -107,7 +122,14 @@ Return JSON with:
     - activities (array of interests)
     - night_travel (boolean)
 )
-If information is missing, use null. For dates, use ISO format."""
+
+EXAMPLES:
+Query: "Trip from Mumbai to Goa" → destination: "Goa", origin: "Mumbai", event_details: {has_event: false}
+Query: "Visiting Jaipur for 3 days" → destination: "Jaipur", event_details: {has_event: false}
+Query: "Hackathon in Hyderabad, starting from Bangalore" → destination: "Hyderabad", origin: "Bangalore", event_details: {has_event: true, event_type: "hackathon", event_location: "Hyderabad"}
+Query: "Conference at IIT Delhi from Dec 20-22, need to be back by 23rd morning" → destination: "Delhi", event_details: {has_event: true, event_type: "conference", event_name: "IIT Delhi conference", event_schedule: {startDateTime: "2025-12-20T09:00:00", endDateTime: "2025-12-22T17:00:00"}, return_constraints: "must be back by Dec 23rd morning"}
+
+If information is missing, use null. For dates, use ISO format YYYY-MM-DD."""
             },
             {
                 "role": "user",
@@ -115,7 +137,13 @@ If information is missing, use null. For dates, use ISO format."""
 
 User's stored preferences: {json.dumps(user_preferences or {})}
 
-Extract travel details."""
+IMPORTANT: 
+1. Identify the DESTINATION (where they want to GO/VISIT)
+2. Identify the ORIGIN (where they are starting FROM) if mentioned
+3. Extract specific dates if mentioned
+4. Calculate duration based on dates or explicit mentions
+
+Extract all travel details as JSON."""
             }
         ]
         
@@ -131,16 +159,35 @@ Extract travel details."""
         messages = [
             {
                 "role": "system",
-                "content": """You are an expert travel planner. Create a detailed day-wise itinerary.
+                "content": f"""You are an expert travel planner. Create a detailed day-wise itinerary.
 Return JSON with array of days, each containing: 
 - day (number)
 - summary (brief description of the day)
 - activities (array with time, type, name, description, duration, tips, location object).
 
+🎯 TRIP TYPE DETECTION:
+{"EVENT-FOCUSED TRIP" if trip_details.get('event_details', {}).get('has_event', False) else "LEISURE/TOURISM TRIP"}
+
+{"⚠️ CRITICAL - EVENT-FOCUSED TRIP MODE:" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"This is NOT a tourism trip! User is attending a specific event." if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"Event Details:" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{f"- Event Type: {trip_details.get('event_details', {}).get('event_type', 'N/A')}" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{f"- Event Location: {trip_details.get('event_details', {}).get('event_location', 'N/A')}" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{f"- Event Schedule: {trip_details.get('event_details', {}).get('event_schedule', 'N/A')}" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{f"- Return Constraints: {trip_details.get('event_details', {}).get('return_constraints', 'N/A')}" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+
+{"EVENT TRIP ITINERARY RULES:" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"1. FOCUS ON THE EVENT - Block out exact event hours (make event the PRIMARY activity)" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"2. Plan travel to reach event venue BEFORE event start time with buffer" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"3. Only add minimal sightseeing if there's genuinely free time (early mornings/late evenings)" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"4. Respect return constraints - plan departure to meet return deadline" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"5. Keep accommodations close to event venue for convenience" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+{"6. During event hours: Schedule meals near event venue, no sightseeing" if trip_details.get('event_details', {}).get('has_event', False) else ""}
+
 CRITICAL INSTRUCTIONS:
 1. Include Hotel Check-in on Day 1 and Check-out on last day.
-2. If Origin is provided ({trip_details.get('origin')}), plan travel from Origin to Destination on Day 1 (Activity Type: 'travel').
-3. If Round Trip is true ({trip_details.get('is_round_trip')}), plan return travel from Destination to Origin on the last day (Activity Type: 'travel').
+2. If Origin is provided, plan travel from Origin to Destination on Day 1 (Activity Type: 'travel').
+3. If Round Trip is true, plan return travel from Destination to Origin on the last day (Activity Type: 'travel').
 4. Plan Breakfast, Lunch, and Dinner for every day.
 
 EXTREMELY IMPORTANT - RESTAURANT RULES:
@@ -177,9 +224,9 @@ VALIDATION: Before returning your response, verify that EVERY restaurant name ap
             },
             {
                 "role": "user",
-                "content": f"""Create {trip_details['duration']['days']}-day ATTRACTION-RICH itinerary for {trip_details['destination']}.
+                "content": f"""Create {trip_details['duration']['days']}-day {'EVENT-FOCUSED' if trip_details.get('event_details', {}).get('has_event', False) else 'DIVERSE & OPTIMIZED'} itinerary for {trip_details['destination']}.
 
-🎯 GOAL: Create an itinerary that MAXIMIZES tourist attractions and sightseeing experiences!
+🎯 GOAL: {'Focus on event attendance with practical logistics! This is NOT a sightseeing trip.' if trip_details.get('event_details', {}).get('has_event', False) else 'Create a realistic, well-rounded itinerary with diverse experiences and optimized routes!'}
 
 📋 TRIP DETAILS:
 - Origin: {trip_details.get('origin', 'Not specified')}
@@ -229,31 +276,70 @@ Available Places (PRIORITIZE category='attraction'):
 📊 GEOGRAPHIC CLUSTERS AVAILABLE:
 {json.dumps({k: [p["name"] for p in v] for k, v in (clusters or {}).items()}, indent=2) if clusters else "No clustering data"}
 
-⚠️ CRITICAL REMINDERS:
-1. **RESPECT USER PREFERENCES**: Adjust attractions count based on travel_style
-   - Relaxed: 3-4 attractions/day, more breaks
-   - Balanced: 4-5 attractions/day, moderate pace
-   - Adventure: 5-6 attractions/day, packed schedule
-   - Cultural: Focus heritage sites regardless of count
-2. Focus 70-80% of schedule on TOURIST ATTRACTIONS (category='attraction')
-3. **OPTIMIZE ROUTE**: Group attractions by cluster field - visit same zone together
-4. Use ONLY real place names from the Available Places list above
-5. NEVER create fake names - everything must match the JSON data
-6. Keep meals SHORT (30-60 min) to maximize attraction time
-7. Select restaurants matching dietary preferences (veg/non-veg/vegan)
-8. Add transport tips based on transport_mode preference
-9. **ROUTE EFFICIENCY**: Minimize travel time by intelligent zone planning
+⚠️ CRITICAL REQUIREMENTS:
+1. **DIVERSE EXPERIENCES**: Mix different types of places
+   - Natural attractions: Beaches, waterfalls, viewpoints, lakes (40%)
+   - Cultural/Historical: Forts, monuments, museums, heritage sites (25%)
+   - Activities: Adventure, water sports, markets, shopping (20%)
+   - Religious sites: Only 2-3 temples max per trip (15%)
 
-ROUTE OPTIMIZATION EXAMPLE:
-❌ BAD: North attraction → South attraction → North attraction (zigzag)
-✅ GOOD: North attraction → North attraction → North attraction (efficient)
+2. **RESPECT USER PREFERENCES**: Adjust attractions count based on travel_style
+   - Relaxed: 3-4 places/day, more breaks, beach time, cafes
+   - Balanced: 4-5 places/day, moderate pace, good mix
+   - Adventure: 5-6 places/day, packed schedule, adventure activities
+   - Cultural: Focus quality historical sites, museums, fewer places
 
-PREFERENCE-BASED CUSTOMIZATION EXAMPLES:
-✅ Relaxed Style: Morning attraction → Coffee break → One more attraction → Long lunch → Afternoon attraction → Rest
-✅ Adventure Style: Early start → 3 morning attractions → Quick lunch → 3 afternoon attractions → Sunset spot
-✅ Cultural Style: Temple 1 → Historical monument → Museum → Heritage site (focus quality over quantity)
+3. **ROUTE OPTIMIZATION IS MANDATORY**:
+   - Group places by cluster/geographic zone
+   - Visit nearby places together on same day
+   - Minimize backtracking and zigzag travel
+   - Logical north→south or east→west progression
 
-START CREATING THE ROUTE-OPTIMIZED, PREFERENCE-CUSTOMIZED ITINERARY NOW!"""
+4. **REALISTIC TIMING**:
+   - Account for travel time between places (15-45 min)
+   - Give 1-2 hours per major attraction
+   - Include breaks for meals (60-90 min)
+   - Allow buffer time for delays
+
+5. **USE ONLY REAL DATA**:
+   - Every place name must match Available Places JSON
+   - NEVER invent fake places or attractions
+   - Use exact names and addresses provided
+
+6. **MEAL PLANNING**:
+   - Match restaurants to dietary preferences
+   - Place restaurants strategically on route
+   - Don't backtrack just for food
+
+7. **PRACTICAL TIPS**:
+   - Mention best time to visit (avoid crowds)
+   - Suggest transport options based on preference
+   - Add local insights and warnings
+   - Include sunset/sunrise viewpoints where relevant
+
+🗺️ ROUTE OPTIMIZATION EXAMPLES:
+❌ BAD: North Beach → South Temple → North Fort → South Waterfall (zigzag, wasted time)
+✅ GOOD: North Beach → North Fort → North Viewpoint → Nearby Restaurant (efficient, logical)
+
+❌ BAD: Baga Beach → Dudhsagar Waterfall → Calangute Beach (far apart)
+✅ GOOD: Baga Beach → Calangute Beach → Anjuna Beach (close together)
+
+📅 SAMPLE DAY STRUCTURES:
+
+RELAXED STYLE:
+Day 1: Morning beach (2 hrs) → Beachside cafe (1 hr) → Coastal fort (1.5 hrs) → Lunch (1.5 hrs) → Viewpoint sunset (1 hr) → Hotel
+
+BALANCED STYLE:
+Day 1: Beach (1.5 hrs) → Fort (1 hr) → Market (1 hr) → Lunch (1 hr) → Museum (1 hr) → Waterfall (1.5 hrs) → Dinner
+
+ADVENTURE STYLE:
+Day 1: Early beach (1 hr) → Water sports (2 hrs) → Quick breakfast (30 min) → Fort (1 hr) → Viewpoint (1 hr) → Adventure activity (2 hrs) → Late lunch (45 min) → Sunset spot (1 hr)
+
+CULTURAL STYLE:
+Day 1: Heritage temple (2 hrs) → Historical monument (2 hrs) → Traditional lunch (1.5 hrs) → Museum (2 hrs) → Ancient fort (1.5 hrs)
+
+🎯 CREATE A DIVERSE, ROUTE-OPTIMIZED, REALISTIC ITINERARY NOW!
+Focus on: Natural beauty > Activities > Culture > Limited religious sites"""
             }
         ]
         

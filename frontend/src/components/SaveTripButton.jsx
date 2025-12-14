@@ -22,13 +22,25 @@ const SaveTripButton = ({ itinerary, tripDetails }) => {
 
         setSaving(true);
         try {
-            await axios.post(`${API_BASE_URL}/api/trips`, {
+            const token = localStorage.getItem('token');
+            
+            // Prepare trip data matching backend schema
+            const tripData = {
                 destination: tripDetails.destination || 'My Trip',
-                start_date: tripDetails.startDate,
-                end_date: tripDetails.endDate,
-                days: tripDetails.days || 3,
-                budget: tripDetails.budget,
-                itinerary_data: itinerary
+                start_date: tripDetails.start_date || tripDetails.startDate || null,
+                end_date: tripDetails.end_date || tripDetails.endDate || null,
+                days: parseInt(tripDetails.days) || 3,
+                budget: tripDetails.budget ? parseFloat(tripDetails.budget) : null,
+                itinerary_data: {
+                    itinerary: itinerary,
+                    budgetValidation: tripDetails.budgetValidation || {}
+                }
+            };
+            
+            await axios.post(`${API_BASE_URL}/api/trips`, tripData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             setSaved(true);

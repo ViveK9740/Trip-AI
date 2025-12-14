@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Home from './pages/Home';
-import Dashboard from './pages/Dashboard';
 import TripHistory from './pages/TripHistory';
+import TripDetail from './pages/TripDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 import ThemeToggle from './components/ThemeToggle';
 import UserMenu from './components/UserMenu';
@@ -27,15 +27,8 @@ function App() {
                             <Home />
                         </ProtectedRoute>
                     } />
-                    <Route path="/dashboard" element={
-                        <ProtectedRoute>
-                            <ThemeToggle />
-                            <div className="app-header">
-                                <UserMenu />
-                            </div>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    } />
+                    {/* Redirect dashboard to trips */}
+                    <Route path="/dashboard" element={<Navigate to="/trips" replace />} />
                     <Route path="/trips" element={
                         <ProtectedRoute>
                             <ThemeToggle />
@@ -43,6 +36,15 @@ function App() {
                                 <UserMenu />
                             </div>
                             <TripHistory />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/trip/:tripId" element={
+                        <ProtectedRoute>
+                            <ThemeToggle />
+                            <div className="app-header">
+                                <UserMenu />
+                            </div>
+                            <TripDetail />
                         </ProtectedRoute>
                     } />
                 </Routes>

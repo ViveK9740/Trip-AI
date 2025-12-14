@@ -58,10 +58,9 @@
 }
 
 .user-dropdown {
-    position: absolute;
-    top: calc(100% + 0.5rem);
-    right: 0;
+    position: fixed;
     min-width: 240px;
+    max-width: 280px;
     background: var(--color-bg-card);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
@@ -69,6 +68,15 @@
     z-index: 1000;
     overflow: hidden;
     animation: dropdownSlide 0.2s ease-out;
+    /* Position set via inline styles in JSX */
+}
+
+/* Adjust dropdown size on smaller screens */
+@media (max-width: 768px) {
+    .user-dropdown {
+        min-width: 220px;
+        max-width: 260px;
+    }
 }
 
 @keyframes dropdownSlide {
